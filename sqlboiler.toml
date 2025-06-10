@@ -1,0 +1,7 @@
+[sqlite3]
+dbname = "C:\\Users\\Daniel\\Documents\\GitHub\\To-Do-list-Twave\\todo.db"
+pkgname = "models"
+output = "internal/models"
+wipe = true
+
+blacklist = ["sqlite_sequence"]
