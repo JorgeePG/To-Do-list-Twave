@@ -7,7 +7,7 @@ Aplicación sencilla con Go, REST API y web UI.
 - CRUD de tareas
 - API REST con Gorilla Mux
 - CLI con urfave/cli
-- Persistencia con PostgreSQL y SQLBoiler
+- Persistencia con sqlite y SQLBoiler
 - Tests con Testify
 - Docker y GitHub Actions
 
