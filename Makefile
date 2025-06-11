@@ -1,8 +1,8 @@
 run:
-	go run ./cmd/todo
+	go run ./cmd
 
 build:
-	go build -o todo ./cmd/todo
+	go build -o todo ./cmd
 
 test:
 	go test ./...
@@ -11,4 +11,4 @@ docker:
 	docker build -t todo-app .
 
 sqlboiler:
-	sqlboiler psql
+	sqlite3 

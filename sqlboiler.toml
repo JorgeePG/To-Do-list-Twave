@@ -1,7 +1,7 @@
 [sqlite3]
 dbname = "C:\\Users\\Daniel\\Documents\\GitHub\\To-Do-list-Twave\\todo.db"
-pkgname = "models"
-output = "internal/models"
-wipe = true
+driver = "modernc"
+no-tests = true
 
-blacklist = ["sqlite_sequence"]
+[sqlboiler]
+no-tests = true
