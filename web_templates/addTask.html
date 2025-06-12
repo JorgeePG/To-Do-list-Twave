@@ -1,22 +1,24 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
-    <title>To_Do_List_Twave</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Añadir Tarea</title>
+    <link rel="stylesheet" href="static/style.css">
 </head>
 <body>
-    <nav style="background: #f0f0f0; padding: 10px; margin-bottom: 20px;">
-        <a href="/" style="margin-right: 15px;">Inicio</a>
-        <a href="/addTask" style="margin-right: 15px;">Agregar tarea</a>
-    </nav>
-    <h1>Add new task</h1>
-    <form action="/addTask" method="POST">
-        <label for="title">Title:</label><br>
-        <input type="text" id="title" name="title" required><br><br>
-
-        <label for="done">Done:</label>
-        <input type="checkbox" id="done" name="done"><br><br>
-
-        <button type="submit">Add task</button>
+    <div class="container">
+    <h1>Añadir Nueva Tarea</h1>
+    <form method="POST" action="/addTask">
+        <label for="title">Título:</label>
+        <input type="text" id="title" name="title" required>
+        <br>
+        <label for="done">¿Completada?</label>
+        <input type="checkbox" id="done" name="done">
+        <br>
+        <button type="submit">Añadir Tarea</button>
     </form>
+    <a href="/">Volver a la lista de tareas</a>
+    </div>
 </body>
 </html>

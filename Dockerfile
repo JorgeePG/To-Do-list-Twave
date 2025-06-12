@@ -8,7 +8,7 @@ RUN go mod download
 
 COPY . ./
 
-RUN go build -o todo ./cmd/todo
+RUN cd cmd/ && go build -o todo
 
 EXPOSE 8080
 

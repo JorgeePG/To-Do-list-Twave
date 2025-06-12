@@ -1,30 +1,31 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
-    <title>To_Do_List_Twave</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{.Título}}</title>
+    <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-     <nav style="background: #f0f0f0; padding: 10px; margin-bottom: 20px;">
-        <a href="/" style="margin-right: 15px;">Inicio</a>
-        <a href="/addTask" style="margin-right: 15px;">Agregar tarea</a>
-    </nav>
-    <h1>{{ .Título }}</h1>
-    <p>Texto de ejemplo: {{ .Texto }}</p>
-
-    <h2>Lista de tareas</h2>
-    <ul>
-    {{ range .Tasks }}
-        <li>
-            Tarea: {{ .Title }} - Finalizada: 
-            {{ if .Done.Valid }}
-                {{ if .Done.Bool }}Sí{{ else }}No{{ end }}
-            {{ else }}
-                (No especificado)
-            {{ end }}
-        </li>
-    {{ else }}
-        <li>No hay tareas.</li>
-    {{ end }}
-</ul>
+    <div class="container">
+        <header>
+            <h1>{{.Texto}}</h1>
+        </header>
+        <main>
+            <ul>
+                {{range .Tasks}}
+                    <li>
+                        <div class="task-info">
+                            <input type="checkbox" {{if .Done}}checked{{end}} disabled>
+                            <span class="{{if .Done}}completed{{end}}">{{.Title}}</span>
+                        </div>
+                    </li>
+                {{else}}
+                    <li>No hay tareas disponibles.</li>
+                {{end}}
+            </ul>
+            <a href="/addTask" class="add-task-btn">Agregar nueva tarea</a>
+        </main>
+    </div>
 </body>
 </html>
