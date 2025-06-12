@@ -17,6 +17,11 @@ func startServer() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	db.Exec(`CREATE TABLE IF NOT EXISTS tasks (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    title TEXT,
+    done BOOLEAN
+	)`)
 	handlers.Db = db
 	r := mux.NewRouter()
 	r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir("../web_templates/static/"))))

@@ -1,15 +1,13 @@
 FROM golang:1.24.3
 
-WORKDIR /app
+WORKDIR /app/cmd
 
-COPY go.mod ./
-COPY go.sum ./
+COPY . /app
+
 RUN go mod download
-
-COPY . ./
-
-RUN cd cmd/ && go build -o todo
+RUN go build -o todo .
 
 EXPOSE 8080
 
-CMD ["./todo"]
+ENTRYPOINT ["./todo"]
+CMD []
