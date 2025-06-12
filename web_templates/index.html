@@ -16,8 +16,8 @@
                 {{range .Tasks}}
                     <li>
                         <div class="task-info">
-                            <input type="checkbox" {{if .Done}}checked{{end}} disabled>
-                            <span class="{{if .Done}}completed{{end}}">{{.Title}}</span>
+                            <input type="checkbox" {{if .Done.Bool}}checked{{end}} disabled>
+                            <span class="{{if .Done.Bool}}completed{{end}}">{{.Title}}</span>
                         </div>
                     </li>
                 {{else}}
