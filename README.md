@@ -1,6 +1,8 @@
 # To-Do List App
 
 Aplicación sencilla con Go, REST API y web UI.
+## Develop
+[![CI](https://github.com/JorgeePG/To-Do-list-Twave/actions/workflows/ci.yml/badge.svg)](https://github.com/JorgeePG/To-Do-list-Twave/actions/workflows/ci.yml)
 
 ## Features
 
