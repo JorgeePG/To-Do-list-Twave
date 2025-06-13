@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"html/template"
 	"log"
 	"net/http"
 	"os"
@@ -13,6 +14,8 @@ import (
 	"github.com/urfave/cli/v2"
 	_ "modernc.org/sqlite"
 )
+
+var templates *template.Template
 
 func startServer() {
 	db, err := sql.Open("sqlite", "../todo.db")
@@ -30,11 +33,15 @@ func startServer() {
     password_hash TEXT NOT NULL
 	);`)
 
+	templates = template.Must(template.ParseGlob("../web_templates/*.html"))
+	templates = template.Must(templates.ParseGlob("../web_templates/fragments/*.html"))
+
 	store := sessions.NewCookieStore([]byte("super-secret-key"))
 	handlers.Store = store
 	midleware.Store = store
 
 	handlers.Db = db
+	handlers.Templates = templates
 	r := mux.NewRouter()
 	r.Use(midleware.CspControl)
 

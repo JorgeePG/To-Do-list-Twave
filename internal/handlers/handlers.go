@@ -26,7 +26,7 @@ type PageData struct {
 }
 
 var Db boil.ContextExecutor
-
+var Templates *template.Template
 var Store *sessions.CookieStore
 
 func Handler(w http.ResponseWriter, r *http.Request) {
@@ -48,13 +48,8 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 		Texto:  "Bienvenido a tu lista de tareas",
 		Tasks:  dbTasks,
 	}
-	plantilla, err := template.ParseFiles("../web_templates/index.html")
-	if err != nil {
-		http.Error(w, "Error cargando plantilla: "+err.Error(), http.StatusInternalServerError)
-		return
-	}
 
-	err = plantilla.Execute(w, data)
+	err = Templates.ExecuteTemplate(w, "index.html", data)
 	if err != nil {
 		http.Error(w, "Error ejecutando plantilla: "+err.Error(), http.StatusInternalServerError)
 	}
@@ -88,13 +83,7 @@ func AddTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	plantilla, err := template.ParseFiles("../web_templates/addTask.html")
-	if err != nil {
-		http.Error(w, "Error cargando plantilla: "+err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	err = plantilla.Execute(w, nil)
+	err := Templates.ExecuteTemplate(w, "addTask.html", nil)
 	if err != nil {
 		http.Error(w, "Error ejecutando plantilla: "+err.Error(), http.StatusInternalServerError)
 	}
@@ -187,37 +176,46 @@ func UpdateTask(w http.ResponseWriter, r *http.Request) {
 
 func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "GET" {
-		plantilla, err := template.ParseFiles("../web_templates/register.html")
-		if err != nil {
-			http.Error(w, "Error cargando plantilla: "+err.Error(), http.StatusInternalServerError)
-			return
-		}
-		err = plantilla.Execute(w, nil)
+		err := Templates.ExecuteTemplate(w, "register.html", nil)
 		if err != nil {
 			http.Error(w, "Error ejecutando plantilla: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
 		return
 	}
+
 	username := r.FormValue("username")
 	password := r.FormValue("password")
+
 	hash, _ := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-	_, err := Db.Exec("INSERT INTO users (username, password_hash) VALUES (?, ?)", username, hash)
+
+	result, err := Db.Exec("INSERT INTO users (username, password_hash) VALUES (?, ?)", username, hash)
 	if err != nil {
 		http.Error(w, "Usuario ya existe", http.StatusBadRequest)
 		return
 	}
-	http.Redirect(w, r, "/login", http.StatusSeeOther)
+
+	userID, err := result.LastInsertId()
+	if err != nil {
+		http.Error(w, "Error al obtener el ID del usuario", http.StatusInternalServerError)
+		return
+	}
+
+	// Crear sesión automáticamente
+	session, _ := Store.Get(r, "session")
+	session.Values["user_id"] = int(userID)
+	err = session.Save(r, w)
+	if err != nil {
+		http.Error(w, "Error guardando sesión: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
 func LoginHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "GET" {
-		plantilla, err := template.ParseFiles("../web_templates/login.html")
-		if err != nil {
-			http.Error(w, "Error cargando plantilla: "+err.Error(), http.StatusInternalServerError)
-			return
-		}
-		err = plantilla.Execute(w, nil)
+		err := Templates.ExecuteTemplate(w, "login.html", nil)
 		if err != nil {
 			http.Error(w, "Error ejecutando plantilla: "+err.Error(), http.StatusInternalServerError)
 			return
