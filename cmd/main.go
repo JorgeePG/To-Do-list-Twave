@@ -17,7 +17,7 @@ import (
 
 var templates *template.Template
 
-func startServer() {
+func StartServer() {
 	db, err := sql.Open("sqlite", "../todo.db")
 	if err != nil {
 		log.Fatal(err)
@@ -25,7 +25,8 @@ func startServer() {
 	db.Exec(`CREATE TABLE IF NOT EXISTS tasks (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     title TEXT,
-    done BOOLEAN
+    done BOOLEAN,
+    user_id INTEGER
 	)`)
 	db.Exec(`CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -75,7 +76,7 @@ func main() {
 				Name:  "serve",
 				Usage: "Inicia el servidor web",
 				Action: func(c *cli.Context) error {
-					startServer()
+					StartServer()
 					return nil
 				},
 			},
