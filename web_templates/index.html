@@ -16,13 +16,17 @@
                 {{range .Tasks}}
                     <li>
                         <div class="task-info" data-id="{{.ID.Int64}}">
-                            <input type="checkbox" class="edit-done" {{if .Done.Bool}}checked{{end}} disabled>
-                            <span class="task-title {{if .Done.Bool}}completed{{end}}">{{.Title}}</span>
-                            <input type="text" class="edit-title" value="{{.Title}}" style="display:none;">
-                            <a href="#" class="edit-btn">Editar</a>
-                            <a href="/delete?id={{.ID.Int64}}">Eliminar</a>
-                            <button class="save-btn" style="display:none;">Guardar</button>
-                            <button class="cancel-btn" style="display:none;">Cancelar</button>
+                            <div class="task-main">
+                                <input type="checkbox" class="edit-done" {{if .Done.Bool}}checked{{end}} disabled>
+                                <span class="task-title {{if .Done.Bool}}completed{{end}}">{{.Title}}</span>
+                                <input type="text" class="edit-title" value="{{.Title}}" style="display:none;">
+                            </div>
+                            <div class="task-actions">
+                                <a href="#" class="edit-btn">Editar</a>
+                                <button class="save-btn" style="display:none;">Guardar</button>
+                                <button class="cancel-btn" style="display:none;">Cancelar</button>
+                                <a href="/delete?id={{.ID.Int64}}">Eliminar</a>
+                            </div>
                         </div>
                     </li>
                 {{else}}
