@@ -8,8 +8,10 @@ import (
 	"time"
 
 	"github.com/JorgeePG/todo-list/internal/models"
+	"github.com/gorilla/sessions"
 	"github.com/volatiletech/null/v8"
 	"github.com/volatiletech/sqlboiler/v4/boil"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type Datos struct {
@@ -25,9 +27,17 @@ type PageData struct {
 
 var Db boil.ContextExecutor
 
+var Store *sessions.CookieStore
+
 func Handler(w http.ResponseWriter, r *http.Request) {
-	// Obtener tareas de la base de datos
-	dbTasks, err := models.Tasks().All(r.Context(), Db)
+	session, _ := Store.Get(r, "session")
+	userID, ok := session.Values["user_id"].(int)
+	if !ok {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
+
+	dbTasks, err := models.Tasks(models.TaskWhere.UserID.EQ(null.Int64From(int64(userID)))).All(r.Context(), Db)
 	if err != nil {
 		http.Error(w, "Error obteniendo tareas: "+err.Error(), http.StatusInternalServerError)
 		return
@@ -36,7 +46,7 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 	data := PageData{
 		Título: "Mi To-Do List",
 		Texto:  "Bienvenido a tu lista de tareas",
-		Tasks:  dbTasks, // Pasa directamente las tareas del modelo
+		Tasks:  dbTasks,
 	}
 	plantilla, err := template.ParseFiles("../web_templates/index.html")
 	if err != nil {
@@ -51,17 +61,22 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 }
 
 func AddTask(w http.ResponseWriter, r *http.Request) {
+	session, _ := Store.Get(r, "session")
+	userID, ok := session.Values["user_id"].(int)
+	if !ok {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
 
 	if r.Method == http.MethodPost {
-		// Procesar datos del formulario
 		title := r.FormValue("title")
 		done := r.FormValue("done")
 
-		// Crear y guardar la tarea usando el módulo models
 		task := &models.Task{
-			Title: title,
-			Done:  null.Bool{Bool: done == "on", Valid: true},
-			ID:    generateUniqueID(),
+			Title:  title,
+			Done:   null.Bool{Bool: done == "on", Valid: true},
+			ID:     generateUniqueID(),
+			UserID: null.Int64From(int64(userID)),
 		}
 		err := task.Insert(r.Context(), Db, boil.Infer())
 		if err != nil {
@@ -73,7 +88,6 @@ func AddTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Si es GET, mostrar el formulario
 	plantilla, err := template.ParseFiles("../web_templates/addTask.html")
 	if err != nil {
 		http.Error(w, "Error cargando plantilla: "+err.Error(), http.StatusInternalServerError)
@@ -85,6 +99,7 @@ func AddTask(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Error ejecutando plantilla: "+err.Error(), http.StatusInternalServerError)
 	}
 }
+
 func generateUniqueID() null.Int64 {
 	// Combinamos tiempo en nanosegundos + un número aleatorio para evitar colisiones.
 	uniqueID := time.Now().UnixNano() + rand.Int63n(1000) // rand.Int63n añade entropía
@@ -92,11 +107,15 @@ func generateUniqueID() null.Int64 {
 }
 
 func DeleteTask(w http.ResponseWriter, r *http.Request) {
-	// Permitir GET además de POST
-	if r.Method == http.MethodPost || r.Method == http.MethodGet {
-		id := r.FormValue("id") // Esto funciona tanto para POST como para GET
+	session, _ := Store.Get(r, "session")
+	userID, ok := session.Values["user_id"].(int)
+	if !ok {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
 
-		// Convertir id a int64
+	if r.Method == http.MethodPost || r.Method == http.MethodGet {
+		id := r.FormValue("id")
 		var intID int64
 		if id != "" {
 			var err error
@@ -107,9 +126,13 @@ func DeleteTask(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
-		// Eliminar la tarea usando el módulo models
-		task := &models.Task{ID: null.Int64From(intID)}
-		_, err := task.Delete(r.Context(), Db)
+		task, err := models.FindTask(r.Context(), Db, null.Int64From(intID))
+		if err != nil || !task.UserID.Valid || task.UserID.Int64 != int64(userID) {
+			http.Error(w, "No autorizado", http.StatusForbidden)
+			return
+		}
+
+		_, err = task.Delete(r.Context(), Db)
 		if err != nil {
 			http.Error(w, "Error eliminando tarea: "+err.Error(), http.StatusInternalServerError)
 			return
@@ -123,6 +146,13 @@ func DeleteTask(w http.ResponseWriter, r *http.Request) {
 }
 
 func UpdateTask(w http.ResponseWriter, r *http.Request) {
+	session, _ := Store.Get(r, "session")
+	userID, ok := session.Values["user_id"].(int)
+	if !ok {
+		http.Error(w, "No autorizado", http.StatusUnauthorized)
+		return
+	}
+
 	if r.Method != http.MethodPost {
 		http.Error(w, "Método no permitido", http.StatusMethodNotAllowed)
 		return
@@ -139,8 +169,8 @@ func UpdateTask(w http.ResponseWriter, r *http.Request) {
 	}
 
 	task, err := models.FindTask(r.Context(), Db, null.Int64From(intID))
-	if err != nil {
-		http.Error(w, "Tarea no encontrada: "+err.Error(), http.StatusNotFound)
+	if err != nil || !task.UserID.Valid || task.UserID.Int64 != int64(userID) {
+		http.Error(w, "No autorizado", http.StatusForbidden)
 		return
 	}
 
@@ -153,4 +183,69 @@ func UpdateTask(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
+}
+
+func RegisterHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "GET" {
+		plantilla, err := template.ParseFiles("../web_templates/register.html")
+		if err != nil {
+			http.Error(w, "Error cargando plantilla: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+		err = plantilla.Execute(w, nil)
+		if err != nil {
+			http.Error(w, "Error ejecutando plantilla: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+		return
+	}
+	username := r.FormValue("username")
+	password := r.FormValue("password")
+	hash, _ := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	_, err := Db.Exec("INSERT INTO users (username, password_hash) VALUES (?, ?)", username, hash)
+	if err != nil {
+		http.Error(w, "Usuario ya existe", http.StatusBadRequest)
+		return
+	}
+	http.Redirect(w, r, "/login", http.StatusSeeOther)
+}
+
+func LoginHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "GET" {
+		plantilla, err := template.ParseFiles("../web_templates/login.html")
+		if err != nil {
+			http.Error(w, "Error cargando plantilla: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+		err = plantilla.Execute(w, nil)
+		if err != nil {
+			http.Error(w, "Error ejecutando plantilla: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+		return
+	}
+	username := r.FormValue("username")
+	password := r.FormValue("password")
+	var id int
+	var hash string
+	err := Db.QueryRow("SELECT id, password_hash FROM users WHERE username = ?", username).Scan(&id, &hash)
+	if err != nil {
+		http.Error(w, "Usuario o contraseña incorrectos", http.StatusUnauthorized)
+		return
+	}
+	if bcrypt.CompareHashAndPassword([]byte(hash), []byte(password)) != nil {
+		http.Error(w, "Usuario o contraseña incorrectos", http.StatusUnauthorized)
+		return
+	}
+	// Guardar el user_id en la cookie de sesión
+	session, _ := Store.Get(r, "session")
+	session.Values["user_id"] = id
+	session.Save(r, w)
+	http.Redirect(w, r, "/", http.StatusSeeOther)
+}
+func LogoutHandler(w http.ResponseWriter, r *http.Request) {
+	session, _ := Store.Get(r, "session")
+	delete(session.Values, "user_id")
+	session.Save(r, w)
+	http.Redirect(w, r, "/login", http.StatusSeeOther)
 }

@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Iniciar sesión</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <h2>Iniciar sesión</h2>
+        <form method="POST" action="/login">
+            <label>Usuario:
+                <input type="text" name="username" required>
+            </label>
+            <label>Contraseña:
+                <input type="password" name="password" required>
+            </label>
+            <button type="submit">Entrar</button>
+        </form>
+        <a href="/register">¿No tienes cuenta? Regístrate</a>
+    </div>
+</body>
+</html>

@@ -3,10 +3,10 @@
 
 package models
 
-var TableNames = struct {
-	Tasks string
-	Users string
-}{
-	Tasks: "tasks",
-	Users: "users",
+import "testing"
+
+func TestUpsert(t *testing.T) {
+	t.Run("Tasks", testTasksUpsert)
+
+	t.Run("Users", testUsersUpsert)
 }

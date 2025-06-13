@@ -24,32 +24,37 @@ import (
 
 // Task is an object representing the database table.
 type Task struct {
-	ID    null.Int64 `boil:"id" json:"id,omitempty" toml:"id" yaml:"id,omitempty"`
-	Title string     `boil:"title" json:"title" toml:"title" yaml:"title"`
-	Done  null.Bool  `boil:"done" json:"done,omitempty" toml:"done" yaml:"done,omitempty"`
+	ID     null.Int64 `boil:"id" json:"id,omitempty" toml:"id" yaml:"id,omitempty"`
+	Title  string     `boil:"title" json:"title" toml:"title" yaml:"title"`
+	Done   null.Bool  `boil:"done" json:"done,omitempty" toml:"done" yaml:"done,omitempty"`
+	UserID null.Int64 `boil:"user_id" json:"user_id,omitempty" toml:"user_id" yaml:"user_id,omitempty"`
 
 	R *taskR `boil:"-" json:"-" toml:"-" yaml:"-"`
 	L taskL  `boil:"-" json:"-" toml:"-" yaml:"-"`
 }
 
 var TaskColumns = struct {
-	ID    string
-	Title string
-	Done  string
+	ID     string
+	Title  string
+	Done   string
+	UserID string
 }{
-	ID:    "id",
-	Title: "title",
-	Done:  "done",
+	ID:     "id",
+	Title:  "title",
+	Done:   "done",
+	UserID: "user_id",
 }
 
 var TaskTableColumns = struct {
-	ID    string
-	Title string
-	Done  string
+	ID     string
+	Title  string
+	Done   string
+	UserID string
 }{
-	ID:    "tasks.id",
-	Title: "tasks.title",
-	Done:  "tasks.done",
+	ID:     "tasks.id",
+	Title:  "tasks.title",
+	Done:   "tasks.done",
+	UserID: "tasks.user_id",
 }
 
 // Generated where
@@ -142,21 +147,27 @@ func (w whereHelpernull_Bool) IsNull() qm.QueryMod    { return qmhelper.WhereIsN
 func (w whereHelpernull_Bool) IsNotNull() qm.QueryMod { return qmhelper.WhereIsNotNull(w.field) }
 
 var TaskWhere = struct {
-	ID    whereHelpernull_Int64
-	Title whereHelperstring
-	Done  whereHelpernull_Bool
+	ID     whereHelpernull_Int64
+	Title  whereHelperstring
+	Done   whereHelpernull_Bool
+	UserID whereHelpernull_Int64
 }{
-	ID:    whereHelpernull_Int64{field: "\"tasks\".\"id\""},
-	Title: whereHelperstring{field: "\"tasks\".\"title\""},
-	Done:  whereHelpernull_Bool{field: "\"tasks\".\"done\""},
+	ID:     whereHelpernull_Int64{field: "\"tasks\".\"id\""},
+	Title:  whereHelperstring{field: "\"tasks\".\"title\""},
+	Done:   whereHelpernull_Bool{field: "\"tasks\".\"done\""},
+	UserID: whereHelpernull_Int64{field: "\"tasks\".\"user_id\""},
 }
 
 // TaskRels is where relationship names are stored.
 var TaskRels = struct {
-}{}
+	User string
+}{
+	User: "User",
+}
 
 // taskR is where relationships are stored.
 type taskR struct {
+	User *User `boil:"User" json:"User" toml:"User" yaml:"User"`
 }
 
 // NewStruct creates a new relationship struct
@@ -164,13 +175,29 @@ func (*taskR) NewStruct() *taskR {
 	return &taskR{}
 }
 
+func (o *Task) GetUser() *User {
+	if o == nil {
+		return nil
+	}
+
+	return o.R.GetUser()
+}
+
+func (r *taskR) GetUser() *User {
+	if r == nil {
+		return nil
+	}
+
+	return r.User
+}
+
 // taskL is where Load methods for each relationship are stored.
 type taskL struct{}
 
 var (
-	taskAllColumns            = []string{"id", "title", "done"}
+	taskAllColumns            = []string{"id", "title", "done", "user_id"}
 	taskColumnsWithoutDefault = []string{"title"}
-	taskColumnsWithDefault    = []string{"id", "done"}
+	taskColumnsWithDefault    = []string{"id", "done", "user_id"}
 	taskPrimaryKeyColumns     = []string{"id"}
 	taskGeneratedColumns      = []string{"id"}
 )
@@ -478,6 +505,221 @@ func (q taskQuery) Exists(ctx context.Context, exec boil.ContextExecutor) (bool,
 	}
 
 	return count > 0, nil
+}
+
+// User pointed to by the foreign key.
+func (o *Task) User(mods ...qm.QueryMod) userQuery {
+	queryMods := []qm.QueryMod{
+		qm.Where("\"id\" = ?", o.UserID),
+	}
+
+	queryMods = append(queryMods, mods...)
+
+	return Users(queryMods...)
+}
+
+// LoadUser allows an eager lookup of values, cached into the
+// loaded structs of the objects. This is for an N-1 relationship.
+func (taskL) LoadUser(ctx context.Context, e boil.ContextExecutor, singular bool, maybeTask interface{}, mods queries.Applicator) error {
+	var slice []*Task
+	var object *Task
+
+	if singular {
+		var ok bool
+		object, ok = maybeTask.(*Task)
+		if !ok {
+			object = new(Task)
+			ok = queries.SetFromEmbeddedStruct(&object, &maybeTask)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", object, maybeTask))
+			}
+		}
+	} else {
+		s, ok := maybeTask.(*[]*Task)
+		if ok {
+			slice = *s
+		} else {
+			ok = queries.SetFromEmbeddedStruct(&slice, maybeTask)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", slice, maybeTask))
+			}
+		}
+	}
+
+	args := make(map[interface{}]struct{})
+	if singular {
+		if object.R == nil {
+			object.R = &taskR{}
+		}
+		if !queries.IsNil(object.UserID) {
+			args[object.UserID] = struct{}{}
+		}
+
+	} else {
+		for _, obj := range slice {
+			if obj.R == nil {
+				obj.R = &taskR{}
+			}
+
+			if !queries.IsNil(obj.UserID) {
+				args[obj.UserID] = struct{}{}
+			}
+
+		}
+	}
+
+	if len(args) == 0 {
+		return nil
+	}
+
+	argsSlice := make([]interface{}, len(args))
+	i := 0
+	for arg := range args {
+		argsSlice[i] = arg
+		i++
+	}
+
+	query := NewQuery(
+		qm.From(`users`),
+		qm.WhereIn(`users.id in ?`, argsSlice...),
+	)
+	if mods != nil {
+		mods.Apply(query)
+	}
+
+	results, err := query.QueryContext(ctx, e)
+	if err != nil {
+		return errors.Wrap(err, "failed to eager load User")
+	}
+
+	var resultSlice []*User
+	if err = queries.Bind(results, &resultSlice); err != nil {
+		return errors.Wrap(err, "failed to bind eager loaded slice User")
+	}
+
+	if err = results.Close(); err != nil {
+		return errors.Wrap(err, "failed to close results of eager load for users")
+	}
+	if err = results.Err(); err != nil {
+		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for users")
+	}
+
+	if len(userAfterSelectHooks) != 0 {
+		for _, obj := range resultSlice {
+			if err := obj.doAfterSelectHooks(ctx, e); err != nil {
+				return err
+			}
+		}
+	}
+
+	if len(resultSlice) == 0 {
+		return nil
+	}
+
+	if singular {
+		foreign := resultSlice[0]
+		object.R.User = foreign
+		if foreign.R == nil {
+			foreign.R = &userR{}
+		}
+		foreign.R.Tasks = append(foreign.R.Tasks, object)
+		return nil
+	}
+
+	for _, local := range slice {
+		for _, foreign := range resultSlice {
+			if queries.Equal(local.UserID, foreign.ID) {
+				local.R.User = foreign
+				if foreign.R == nil {
+					foreign.R = &userR{}
+				}
+				foreign.R.Tasks = append(foreign.R.Tasks, local)
+				break
+			}
+		}
+	}
+
+	return nil
+}
+
+// SetUser of the task to the related item.
+// Sets o.R.User to related.
+// Adds o to related.R.Tasks.
+func (o *Task) SetUser(ctx context.Context, exec boil.ContextExecutor, insert bool, related *User) error {
+	var err error
+	if insert {
+		if err = related.Insert(ctx, exec, boil.Infer()); err != nil {
+			return errors.Wrap(err, "failed to insert into foreign table")
+		}
+	}
+
+	updateQuery := fmt.Sprintf(
+		"UPDATE \"tasks\" SET %s WHERE %s",
+		strmangle.SetParamNames("\"", "\"", 0, []string{"user_id"}),
+		strmangle.WhereClause("\"", "\"", 0, taskPrimaryKeyColumns),
+	)
+	values := []interface{}{related.ID, o.ID}
+
+	if boil.IsDebug(ctx) {
+		writer := boil.DebugWriterFrom(ctx)
+		fmt.Fprintln(writer, updateQuery)
+		fmt.Fprintln(writer, values)
+	}
+	if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
+		return errors.Wrap(err, "failed to update local table")
+	}
+
+	queries.Assign(&o.UserID, related.ID)
+	if o.R == nil {
+		o.R = &taskR{
+			User: related,
+		}
+	} else {
+		o.R.User = related
+	}
+
+	if related.R == nil {
+		related.R = &userR{
+			Tasks: TaskSlice{o},
+		}
+	} else {
+		related.R.Tasks = append(related.R.Tasks, o)
+	}
+
+	return nil
+}
+
+// RemoveUser relationship.
+// Sets o.R.User to nil.
+// Removes o from all passed in related items' relationships struct.
+func (o *Task) RemoveUser(ctx context.Context, exec boil.ContextExecutor, related *User) error {
+	var err error
+
+	queries.SetScanner(&o.UserID, nil)
+	if _, err = o.Update(ctx, exec, boil.Whitelist("user_id")); err != nil {
+		return errors.Wrap(err, "failed to update local table")
+	}
+
+	if o.R != nil {
+		o.R.User = nil
+	}
+	if related == nil || related.R == nil {
+		return nil
+	}
+
+	for i, ri := range related.R.Tasks {
+		if queries.Equal(o.UserID, ri.UserID) {
+			continue
+		}
+
+		ln := len(related.R.Tasks)
+		if ln > 1 && i < ln-1 {
+			related.R.Tasks[i] = related.R.Tasks[ln-1]
+		}
+		related.R.Tasks = related.R.Tasks[:ln-1]
+		break
+	}
+	return nil
 }
 
 // Tasks retrieves all the records using an executor.

@@ -7,7 +7,9 @@ import (
 	"os"
 
 	"github.com/JorgeePG/todo-list/internal/handlers"
+	"github.com/JorgeePG/todo-list/internal/midleware"
 	"github.com/gorilla/mux"
+	"github.com/gorilla/sessions"
 	"github.com/urfave/cli/v2"
 	_ "modernc.org/sqlite"
 )
@@ -22,13 +24,37 @@ func startServer() {
     title TEXT,
     done BOOLEAN
 	)`)
+	db.Exec(`CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT NOT NULL UNIQUE,
+    password_hash TEXT NOT NULL
+	);`)
+
+	store := sessions.NewCookieStore([]byte("super-secret-key"))
+	handlers.Store = store
+	midleware.Store = store
+
 	handlers.Db = db
 	r := mux.NewRouter()
+	r.Use(midleware.CspControl)
+
 	r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir("../web_templates/static/"))))
-	r.HandleFunc("/", handlers.Handler)
-	r.HandleFunc("/addTask", handlers.AddTask).Methods("GET", "POST")
-	r.HandleFunc("/delete", handlers.DeleteTask)
-	r.HandleFunc("/update", handlers.UpdateTask).Methods("GET", "POST")
+
+	// Rutas públicas
+	r.HandleFunc("/register", handlers.RegisterHandler)
+	r.HandleFunc("/login", handlers.LoginHandler)
+	r.HandleFunc("/logout", handlers.LogoutHandler)
+
+	// Subrouter protegido
+	s := r.PathPrefix("/").Subrouter()
+	s.Use(midleware.RequireLogin)
+
+	// Rutas protegidas
+	s.HandleFunc("/", handlers.Handler)
+	s.HandleFunc("/addTask", handlers.AddTask).Methods("GET", "POST")
+	s.HandleFunc("/delete", handlers.DeleteTask)
+	s.HandleFunc("/update", handlers.UpdateTask).Methods("GET", "POST")
+
 	log.Println("Servidor iniciado en :8080")
 	http.ListenAndServe(":8080", r)
 }
@@ -46,7 +72,6 @@ func main() {
 					return nil
 				},
 			},
-			// Puedes añadir más comandos aquí, por ejemplo: add, list, delete, etc.
 		},
 	}
 

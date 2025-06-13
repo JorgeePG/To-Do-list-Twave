@@ -260,6 +260,12 @@ ul {
     border-bottom: 1px solid #eee;
 }
 
+.edit-title,
+.save-btn,
+.cancel-btn {
+    display: none;
+}
+
 @media (max-width: 600px) {
     .container {
         max-width: 98vw;

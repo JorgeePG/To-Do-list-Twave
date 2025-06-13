@@ -4,21 +4,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Añadir Tarea</title>
-    <link rel="stylesheet" href="static/style.css">
+    <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
     <div class="container">
-    <h1>Añadir Nueva Tarea</h1>
-    <form method="POST" action="/addTask">
-        <label for="title">Título:</label>
-        <input type="text" id="title" name="title" required>
-        <br>
-        <label for="done">¿Completada?</label>
-        <input type="checkbox" id="done" name="done">
-        <br>
-        <button type="submit">Añadir Tarea</button>
-    </form>
-    <a href="/">Volver a la lista de tareas</a>
+        <h1>Añadir Nueva Tarea</h1>
+        <form method="POST" action="/addTask">
+            <label for="title">Título:</label>
+            <input type="text" id="title" name="title" required>
+            <label for="done">¿Completada?</label>
+            <input type="checkbox" id="done" name="done">
+            <button type="submit">Añadir Tarea</button>
+        </form>
+        <a href="/">Volver a la lista de tareas</a>
     </div>
 </body>
 </html>
