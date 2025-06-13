@@ -27,6 +27,8 @@ func startServer() {
 	r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir("../web_templates/static/"))))
 	r.HandleFunc("/", handlers.Handler)
 	r.HandleFunc("/addTask", handlers.AddTask).Methods("GET", "POST")
+	r.HandleFunc("/delete", handlers.DeleteTask)
+	r.HandleFunc("/update", handlers.UpdateTask).Methods("GET", "POST")
 	log.Println("Servidor iniciado en :8080")
 	http.ListenAndServe(":8080", r)
 }

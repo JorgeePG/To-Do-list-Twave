@@ -26,12 +26,17 @@ h1, h2 {
 }
 
 ul {
-    list-style-type: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
     padding: 0;
-    margin: 0;
+    margin: 0 auto;
+    width: 100%;
 }
 
 li {
+    width: 100%;
+    max-width: 600px;
     background: #f7f7ff;
     margin: 12px 0;
     padding: 18px 16px;
@@ -39,7 +44,7 @@ li {
     box-shadow: 0 2px 8px rgba(31, 38, 135, 0.07);
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: center;
     transition: box-shadow 0.2s;
 }
 
@@ -47,10 +52,19 @@ li:hover {
     box-shadow: 0 4px 16px rgba(31, 38, 135, 0.13);
 }
 
+/* Centra el contenido de la tarea y separa los botones a la derecha */
 .task-info {
     display: flex;
     align-items: center;
-    gap: 10px;
+    justify-content: space-between;
+    gap: 1.5rem;
+    width: 100%;
+}
+
+.task-main {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
     flex: 1;
 }
 
@@ -106,6 +120,146 @@ input[type="checkbox"] {
     height: 18px;
 }
 
+/* Agrupa los botones a la derecha */
+.task-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* Ajusta los botones para que no se amontonen */
+.task-info .edit-btn,
+.task-info .save-btn,
+.task-info .cancel-btn,
+.task-info a[href^="/delete"] {
+    margin-left: 0;
+}
+
+/* Estilo para la lista de tareas */
+ul {
+    list-style: none;
+    padding: 0;
+}
+
+.task-info {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #eee;
+}
+
+.task-info .completed {
+    text-decoration: line-through;
+    color: #888;
+}
+
+/* Botón Eliminar */
+.task-info a {
+    color: #fff;
+    background: #e74c3c;
+    padding: 0.3rem 0.8rem;
+    border-radius: 4px;
+    text-decoration: none;
+    font-size: 0.95rem;
+    transition: background 0.2s;
+    margin-left: auto;
+}
+
+.task-info a:hover {
+    background: #c0392b;
+}
+
+/* Botón agregar tarea */
+.add-task-btn {
+    display: inline-block;
+    margin-top: 1.5rem;
+    background: #3498db;
+    color: #fff;
+    padding: 0.5rem 1.2rem;
+    border-radius: 4px;
+    text-decoration: none;
+    font-weight: bold;
+    transition: background 0.2s;
+}
+
+.add-task-btn:hover {
+    background: #217dbb;
+}
+
+/* Botón Editar */
+.task-info .edit-btn {
+    color: #fff;
+    background: #f1c40f;
+    padding: 0.3rem 0.8rem;
+    border-radius: 4px;
+    text-decoration: none;
+    font-size: 0.95rem;
+    transition: background 0.2s;
+    margin-left: 0.5rem;
+    border: none;
+    cursor: pointer;
+}
+.task-info .edit-btn:hover {
+    background: #b7950b;
+}
+
+/* Botón Guardar */
+.task-info .save-btn {
+    color: #fff;
+    background: #27ae60;
+    padding: 0.3rem 0.8rem;
+    border-radius: 4px;
+    font-size: 0.95rem;
+    border: none;
+    margin-left: 0.5rem;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+.task-info .save-btn:hover {
+    background: #1e8449;
+}
+
+/* Botón Cancelar */
+.task-info .cancel-btn {
+    color: #fff;
+    background: #7f8c8d;
+    padding: 0.3rem 0.8rem;
+    border-radius: 4px;
+    font-size: 0.95rem;
+    border: none;
+    margin-left: 0.5rem;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+.task-info .cancel-btn:hover {
+    background: #566573;
+}
+
+/* Botón Eliminar (ya existente, pero asegúrate de que no se vea como un enlace simple) */
+.task-info a[href^="/delete"] {
+    color: #fff;
+    background: #e74c3c;
+    padding: 0.3rem 0.8rem;
+    border-radius: 4px;
+    text-decoration: none;
+    font-size: 0.95rem;
+    transition: background 0.2s;
+    margin-left: 0.5rem;
+}
+.task-info a[href^="/delete"]:hover {
+    background: #c0392b;
+}
+
+/* Ajuste para que los botones estén alineados y no se amontonen */
+.task-info {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #eee;
+}
+
 @media (max-width: 600px) {
     .container {
         max-width: 98vw;
@@ -119,5 +273,21 @@ input[type="checkbox"] {
         flex-direction: column;
         align-items: flex-start;
         gap: 8px;
+    }
+    li {
+        max-width: 98vw;
+        padding: 12px 2vw;
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .task-info {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.5rem;
+    }
+    .task-main, .task-actions {
+        flex-direction: row;
+        justify-content: flex-start;
+        gap: 0.5rem;
     }
 }

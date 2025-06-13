@@ -15,9 +15,14 @@
             <ul>
                 {{range .Tasks}}
                     <li>
-                        <div class="task-info">
-                            <input type="checkbox" {{if .Done.Bool}}checked{{end}} disabled>
-                            <span class="{{if .Done.Bool}}completed{{end}}">{{.Title}}</span>
+                        <div class="task-info" data-id="{{.ID.Int64}}">
+                            <input type="checkbox" class="edit-done" {{if .Done.Bool}}checked{{end}} disabled>
+                            <span class="task-title {{if .Done.Bool}}completed{{end}}">{{.Title}}</span>
+                            <input type="text" class="edit-title" value="{{.Title}}" style="display:none;">
+                            <a href="#" class="edit-btn">Editar</a>
+                            <a href="/delete?id={{.ID.Int64}}">Eliminar</a>
+                            <button class="save-btn" style="display:none;">Guardar</button>
+                            <button class="cancel-btn" style="display:none;">Cancelar</button>
                         </div>
                     </li>
                 {{else}}
@@ -27,5 +32,64 @@
             <a href="/addTask" class="add-task-btn">Agregar nueva tarea</a>
         </main>
     </div>
+    <script>
+document.querySelectorAll('.edit-btn').forEach(function(btn) {
+    btn.addEventListener('click', function(e) {
+        e.preventDefault();
+        const container = btn.closest('.task-info');
+        container.querySelector('.task-title').style.display = 'none';
+        container.querySelector('.edit-title').style.display = 'inline-block';
+        btn.style.display = 'none';
+        container.querySelector('.save-btn').style.display = 'inline-block';
+        container.querySelector('.cancel-btn').style.display = 'inline-block';
+        container.querySelector('.edit-done').disabled = false; // Habilita el checkbox
+    });
+});
+
+document.querySelectorAll('.cancel-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+        const container = btn.closest('.task-info');
+        container.querySelector('.task-title').style.display = 'inline';
+        container.querySelector('.edit-title').style.display = 'none';
+        container.querySelector('.edit-btn').style.display = 'inline';
+        container.querySelector('.save-btn').style.display = 'none';
+        btn.style.display = 'none';
+        container.querySelector('.edit-done').disabled = true; // Deshabilita el checkbox
+    });
+});
+
+document.querySelectorAll('.save-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+        const container = btn.closest('.task-info');
+        const id = container.getAttribute('data-id');
+        const newTitle = container.querySelector('.edit-title').value;
+        const done = container.querySelector('.edit-done').checked ? "on" : "";
+
+        fetch('/update', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+            body: `id=${encodeURIComponent(id)}&title=${encodeURIComponent(newTitle)}&done=${encodeURIComponent(done)}`
+        }).then(resp => {
+            if (resp.ok) {
+                container.querySelector('.task-title').textContent = newTitle;
+                container.querySelector('.task-title').style.display = 'inline';
+                container.querySelector('.edit-title').style.display = 'none';
+                container.querySelector('.edit-btn').style.display = 'inline';
+                btn.style.display = 'none';
+                container.querySelector('.cancel-btn').style.display = 'none';
+                container.querySelector('.edit-done').disabled = true;
+                // Actualiza el estilo si está completada
+                if (done === "on") {
+                    container.querySelector('.task-title').classList.add('completed');
+                } else {
+                    container.querySelector('.task-title').classList.remove('completed');
+                }
+            } else {
+                alert('Error actualizando la tarea');
+            }
+        });
+    });
+});
+</script>
 </body>
 </html>
