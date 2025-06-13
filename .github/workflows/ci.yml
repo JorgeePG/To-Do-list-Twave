@@ -23,7 +23,7 @@ jobs:
       run: go mod download
 
     - name: Build app
-      run: cd cmd/ go build -o app
+      run: cd cmd/ && go build -o app
 
     - name: Start app in background
       run: |
