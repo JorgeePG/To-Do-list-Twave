@@ -30,6 +30,18 @@ jobs:
         ./app &
         echo $! > app.pid
         sleep 3 # Espera a que la app arranque
+      working-directory: ./cmd
+
+    - name: Wait for app to be ready
+      run: |
+        for i in {1..30}; do
+          if curl -s http://localhost:8080/healthz > /dev/null; then
+            echo "App is up!"
+            break
+          fi
+          echo "Waiting for app..."
+          sleep 1
+        done
 
     - name: Run tests
       run: go test ./...
