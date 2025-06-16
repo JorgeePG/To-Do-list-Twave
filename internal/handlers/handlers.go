@@ -31,8 +31,6 @@ type Handler2 struct {
 	Store     *sessions.CookieStore
 }
 
-var Db boil.ContextExecutor
-
 func (h *Handler2) Handler(w http.ResponseWriter, r *http.Request) {
 	session, _ := h.Store.Get(r, "session")
 	userID, ok := session.Values["user_id"].(int)
@@ -41,7 +39,7 @@ func (h *Handler2) Handler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	dbTasks, err := models.Tasks(models.TaskWhere.UserID.EQ(null.Int64From(int64(userID)))).All(r.Context(), Db)
+	dbTasks, err := models.Tasks(models.TaskWhere.UserID.EQ(null.Int64From(int64(userID)))).All(r.Context(), h.Db)
 	if err != nil {
 		http.Error(w, "Error obteniendo tareas: "+err.Error(), http.StatusInternalServerError)
 		return
@@ -244,8 +242,10 @@ func (h *Handler2) LoginHandler(w http.ResponseWriter, r *http.Request) {
 	session, _ := h.Store.Get(r, "session")
 	session.Values["user_id"] = id
 	session.Save(r, w)
+
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
+
 func (h *Handler2) LogoutHandler(w http.ResponseWriter, r *http.Request) {
 	session, _ := h.Store.Get(r, "session")
 	delete(session.Values, "user_id")

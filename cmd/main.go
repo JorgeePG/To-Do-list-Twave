@@ -40,7 +40,6 @@ func StartServer() {
 	store := sessions.NewCookieStore([]byte("super-secret-key"))
 	midleware.Store = store
 
-	handlers.Db = db
 	r := mux.NewRouter()
 	r.Use(midleware.CspControl)
 
