@@ -27,7 +27,7 @@ jobs:
 
     - name: Start app in background
       run: |
-        cd cmd/ && ./app &
+        ./app &
         echo $! > app.pid
         sleep 4
       working-directory: ./cmd
