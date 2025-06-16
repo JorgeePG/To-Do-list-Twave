@@ -29,18 +29,11 @@ jobs:
       run: |
         cd cmd/ && ./app &
         echo $! > app.pid
+        sleep 4
       working-directory: ./cmd
       env:
         PORT: 8080
 
-    - name: Wait for app to be ready
-      run: |
-        for i in {1..10}; do
-          nc -z localhost 8080 && echo "App is up!" && exit 0
-          echo "Waiting for app..."
-          sleep 1
-        done
-        echo "App did not start in time" && exit 1
 
     - name: Run tests
       run: go test ./...
