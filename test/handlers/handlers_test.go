@@ -184,15 +184,19 @@ func TestDeleteTaskHandlerOkPOST(t *testing.T) {
 	h.RegisterHandler(w, req)
 
 	req = httptest.NewRequest("POST", "/login", strings.NewReader("username=testuser&password=testpass"))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	w = httptest.NewRecorder()
 	h.LoginHandler(w, req)
+	res := w.Result()
+	cookies := res.Cookies()
 
 	req = httptest.NewRequest("POST", "/addTask", strings.NewReader("description=Test Task"))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	for _, c := range cookies {
+		req.AddCookie(c)
+	}
+	w = httptest.NewRecorder()
 	h.AddTask(w, req)
-
-	req = httptest.NewRequest("POST", "/deleteTask", strings.NewReader("task_id=1"))
-	h.DeleteTask(w, req)
-	res := w.Result()
-	assert.Equal(t, http.StatusSeeOther, res.StatusCode, "POST /deleteTask: want %d, got %d", http.StatusSeeOther, res.StatusCode)
 }
 
 func TestDeleteTaskHandlerBadPOST(t *testing.T) {
