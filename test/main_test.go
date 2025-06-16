@@ -7,7 +7,7 @@ import (
 )
 
 func TestServerEndpoints(t *testing.T) {
-	baseURL := "http://localhost:8080" // Asegúrate que coincide con tu puerto
+	baseURL := "http://localhost:8080"
 
 	tests := []struct {
 		name       string
