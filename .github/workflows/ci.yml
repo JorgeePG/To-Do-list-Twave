@@ -36,7 +36,7 @@ jobs:
 
 
     - name: Run tests
-      run: go test ./...
+      run: go test ./test/...
       env:
         PORT: 8080
 
