@@ -27,17 +27,25 @@ jobs:
 
     - name: Start app in background
       run: |
-        ./app &
+        cd cmd/ && ./app &
         echo $! > app.pid
-        sleep 6
       working-directory: ./cmd
       env:
-        PORT: 8080 # <-- Asegúrate de que tu app use este puerto
+        PORT: 8080
+
+    - name: Wait for app to be ready
+      run: |
+        for i in {1..10}; do
+          nc -z localhost 8080 && echo "App is up!" && exit 0
+          echo "Waiting for app..."
+          sleep 1
+        done
+        echo "App did not start in time" && exit 1
 
     - name: Run tests
       run: go test ./...
       env:
-        PORT: 8080 # <-- Por si tus tests lo usan
+        PORT: 8080
 
     - name: Stop app
       if: always()
