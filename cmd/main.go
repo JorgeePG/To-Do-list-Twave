@@ -32,36 +32,38 @@ func StartServer() {
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     username TEXT NOT NULL UNIQUE,
     password_hash TEXT NOT NULL
-	);`)
+	)`)
 
 	templates = template.Must(template.ParseGlob("../web_templates/*.html"))
 	templates = template.Must(templates.ParseGlob("../web_templates/fragments/*.html"))
 
 	store := sessions.NewCookieStore([]byte("super-secret-key"))
-	handlers.Store = store
 	midleware.Store = store
 
 	handlers.Db = db
-	handlers.Templates = templates
 	r := mux.NewRouter()
 	r.Use(midleware.CspControl)
 
 	r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir("../web_templates/static/"))))
-
+	h := &handlers.Handler2{
+		Db:        db,
+		Templates: templates,
+		Store:     store,
+	}
 	// Rutas públicas
-	r.HandleFunc("/register", handlers.RegisterHandler)
-	r.HandleFunc("/login", handlers.LoginHandler)
-	r.HandleFunc("/logout", handlers.LogoutHandler)
+	r.HandleFunc("/register", h.RegisterHandler)
+	r.HandleFunc("/login", h.LoginHandler)
+	r.HandleFunc("/logout", h.LogoutHandler)
 
 	// Subrouter protegido
 	s := r.PathPrefix("/").Subrouter()
 	s.Use(midleware.RequireLogin)
 
 	// Rutas protegidas
-	s.HandleFunc("/", handlers.Handler)
-	s.HandleFunc("/addTask", handlers.AddTask).Methods("GET", "POST")
-	s.HandleFunc("/delete", handlers.DeleteTask)
-	s.HandleFunc("/update", handlers.UpdateTask).Methods("GET", "POST")
+	s.HandleFunc("/", h.Handler)
+	s.HandleFunc("/addTask", h.AddTask).Methods("GET", "POST")
+	s.HandleFunc("/delete", h.DeleteTask)
+	s.HandleFunc("/update", h.UpdateTask).Methods("GET", "POST")
 
 	log.Println("Servidor iniciado en :8080")
 	http.ListenAndServe(":8080", r)

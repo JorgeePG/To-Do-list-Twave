@@ -25,12 +25,16 @@ type PageData struct {
 	Tasks  []*models.Task // Usa el struct del modelo directamente
 }
 
-var Db boil.ContextExecutor
-var Templates *template.Template
-var Store *sessions.CookieStore
+type Handler2 struct {
+	Db        boil.ContextExecutor
+	Templates *template.Template
+	Store     *sessions.CookieStore
+}
 
-func Handler(w http.ResponseWriter, r *http.Request) {
-	session, _ := Store.Get(r, "session")
+var Db boil.ContextExecutor
+
+func (h *Handler2) Handler(w http.ResponseWriter, r *http.Request) {
+	session, _ := h.Store.Get(r, "session")
 	userID, ok := session.Values["user_id"].(int)
 	if !ok {
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
@@ -49,14 +53,14 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 		Tasks:  dbTasks,
 	}
 
-	err = Templates.ExecuteTemplate(w, "index.html", data)
+	err = h.Templates.ExecuteTemplate(w, "index.html", data)
 	if err != nil {
 		http.Error(w, "Error ejecutando plantilla: "+err.Error(), http.StatusInternalServerError)
 	}
 }
 
-func AddTask(w http.ResponseWriter, r *http.Request) {
-	session, _ := Store.Get(r, "session")
+func (h *Handler2) AddTask(w http.ResponseWriter, r *http.Request) {
+	session, _ := h.Store.Get(r, "session")
 	userID, ok := session.Values["user_id"].(int)
 	if !ok {
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
@@ -73,7 +77,7 @@ func AddTask(w http.ResponseWriter, r *http.Request) {
 			ID:     generateUniqueID(),
 			UserID: null.Int64From(int64(userID)),
 		}
-		err := task.Insert(r.Context(), Db, boil.Infer())
+		err := task.Insert(r.Context(), h.Db, boil.Infer())
 		if err != nil {
 			http.Error(w, "Error inserting task: "+err.Error(), http.StatusInternalServerError)
 			return
@@ -83,7 +87,7 @@ func AddTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := Templates.ExecuteTemplate(w, "addTask.html", nil)
+	err := h.Templates.ExecuteTemplate(w, "addTask.html", nil)
 	if err != nil {
 		http.Error(w, "Error ejecutando plantilla: "+err.Error(), http.StatusInternalServerError)
 	}
@@ -95,8 +99,8 @@ func generateUniqueID() null.Int64 {
 	return null.Int64From(uniqueID)
 }
 
-func DeleteTask(w http.ResponseWriter, r *http.Request) {
-	session, _ := Store.Get(r, "session")
+func (h *Handler2) DeleteTask(w http.ResponseWriter, r *http.Request) {
+	session, _ := h.Store.Get(r, "session")
 	userID, ok := session.Values["user_id"].(int)
 	if !ok {
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
@@ -115,13 +119,13 @@ func DeleteTask(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
-		task, err := models.FindTask(r.Context(), Db, null.Int64From(intID))
+		task, err := models.FindTask(r.Context(), h.Db, null.Int64From(intID))
 		if err != nil || !task.UserID.Valid || task.UserID.Int64 != int64(userID) {
 			http.Error(w, "No autorizado", http.StatusForbidden)
 			return
 		}
 
-		_, err = task.Delete(r.Context(), Db)
+		_, err = task.Delete(r.Context(), h.Db)
 		if err != nil {
 			http.Error(w, "Error eliminando tarea: "+err.Error(), http.StatusInternalServerError)
 			return
@@ -134,8 +138,8 @@ func DeleteTask(w http.ResponseWriter, r *http.Request) {
 	http.Error(w, "Método no permitido", http.StatusMethodNotAllowed)
 }
 
-func UpdateTask(w http.ResponseWriter, r *http.Request) {
-	session, _ := Store.Get(r, "session")
+func (h *Handler2) UpdateTask(w http.ResponseWriter, r *http.Request) {
+	session, _ := h.Store.Get(r, "session")
 	userID, ok := session.Values["user_id"].(int)
 	if !ok {
 		http.Error(w, "No autorizado", http.StatusUnauthorized)
@@ -157,7 +161,7 @@ func UpdateTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	task, err := models.FindTask(r.Context(), Db, null.Int64From(intID))
+	task, err := models.FindTask(r.Context(), h.Db, null.Int64From(intID))
 	if err != nil || !task.UserID.Valid || task.UserID.Int64 != int64(userID) {
 		http.Error(w, "No autorizado", http.StatusForbidden)
 		return
@@ -165,7 +169,7 @@ func UpdateTask(w http.ResponseWriter, r *http.Request) {
 
 	task.Title = title
 	task.Done = null.Bool{Bool: done == "on", Valid: true}
-	_, err = task.Update(r.Context(), Db, boil.Infer())
+	_, err = task.Update(r.Context(), h.Db, boil.Infer())
 	if err != nil {
 		http.Error(w, "Error actualizando tarea: "+err.Error(), http.StatusInternalServerError)
 		return
@@ -174,9 +178,10 @@ func UpdateTask(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func RegisterHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Handler2) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "GET" {
-		err := Templates.ExecuteTemplate(w, "register.html", nil)
+		err := h.Templates.ExecuteTemplate(w, "register.html", nil)
+
 		if err != nil {
 			http.Error(w, "Error ejecutando plantilla: "+err.Error(), http.StatusInternalServerError)
 			return
@@ -189,7 +194,7 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 
 	hash, _ := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 
-	result, err := Db.Exec("INSERT INTO users (username, password_hash) VALUES (?, ?)", username, hash)
+	result, err := h.Db.Exec("INSERT INTO users (username, password_hash) VALUES (?, ?)", username, hash)
 	if err != nil {
 		http.Error(w, "Usuario ya existe", http.StatusBadRequest)
 		return
@@ -202,7 +207,7 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Crear sesión automáticamente
-	session, _ := Store.Get(r, "session")
+	session, _ := h.Store.Get(r, "session")
 	session.Values["user_id"] = int(userID)
 	err = session.Save(r, w)
 	if err != nil {
@@ -213,9 +218,9 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
-func LoginHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Handler2) LoginHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "GET" {
-		err := Templates.ExecuteTemplate(w, "login.html", nil)
+		err := h.Templates.ExecuteTemplate(w, "login.html", nil)
 		if err != nil {
 			http.Error(w, "Error ejecutando plantilla: "+err.Error(), http.StatusInternalServerError)
 			return
@@ -226,7 +231,7 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 	password := r.FormValue("password")
 	var id int
 	var hash string
-	err := Db.QueryRow("SELECT id, password_hash FROM users WHERE username = ?", username).Scan(&id, &hash)
+	err := h.Db.QueryRow("SELECT id, password_hash FROM users WHERE username = ?", username).Scan(&id, &hash)
 	if err != nil {
 		http.Error(w, "Usuario o contraseña incorrectos", http.StatusUnauthorized)
 		return
@@ -236,13 +241,13 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// Guardar el user_id en la cookie de sesión
-	session, _ := Store.Get(r, "session")
+	session, _ := h.Store.Get(r, "session")
 	session.Values["user_id"] = id
 	session.Save(r, w)
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
-func LogoutHandler(w http.ResponseWriter, r *http.Request) {
-	session, _ := Store.Get(r, "session")
+func (h *Handler2) LogoutHandler(w http.ResponseWriter, r *http.Request) {
+	session, _ := h.Store.Get(r, "session")
 	delete(session.Values, "user_id")
 	session.Save(r, w)
 	http.Redirect(w, r, "/login", http.StatusSeeOther)
