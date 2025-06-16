@@ -29,24 +29,18 @@ jobs:
       run: |
         ./app &
         echo $! > app.pid
-        sleep 3 # Espera a que la app arranque
+        sleep 6
       working-directory: ./cmd
-
-    - name: Wait for app to be ready
-      run: |
-        for i in {1..30}; do
-          if curl -s http://localhost:8080/healthz > /dev/null; then
-            echo "App is up!"
-            break
-          fi
-          echo "Waiting for app..."
-          sleep 1
-        done
+      env:
+        PORT: 8080 # <-- Asegúrate de que tu app use este puerto
 
     - name: Run tests
       run: go test ./...
+      env:
+        PORT: 8080 # <-- Por si tus tests lo usan
 
     - name: Stop app
       if: always()
       run: |
         kill $(cat app.pid) || true
+      working-directory: ./cmd
