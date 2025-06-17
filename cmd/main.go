@@ -22,16 +22,18 @@ func StartServer() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	// Migraciones básicas
 	db.Exec(`CREATE TABLE IF NOT EXISTS tasks (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    title TEXT,
-    done BOOLEAN,
-    user_id INTEGER
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		title TEXT,
+		done BOOLEAN,
+		user_id INTEGER
 	)`)
 	db.Exec(`CREATE TABLE IF NOT EXISTS users (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    username TEXT NOT NULL UNIQUE,
-    password_hash TEXT NOT NULL
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		username TEXT NOT NULL UNIQUE,
+		password_hash TEXT NOT NULL
 	)`)
 
 	templates = template.Must(template.ParseGlob("../web_templates/*.html"))
@@ -43,26 +45,46 @@ func StartServer() {
 	r := mux.NewRouter()
 	r.Use(midleware.CspControl)
 
+	// Archivos estáticos
 	r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir("../web_templates/static/"))))
-	h := &handlers.Handler2{
+
+	h := &handlers.WebHandler{
 		Db:        db,
 		Templates: templates,
 		Store:     store,
 	}
-	// Rutas públicas
+
+	// Web: Rutas públicas
 	r.HandleFunc("/register", h.RegisterHandler)
 	r.HandleFunc("/login", h.LoginHandler)
 	r.HandleFunc("/logout", h.LogoutHandler)
 
-	// Subrouter protegido
-	s := r.PathPrefix("/").Subrouter()
-	s.Use(midleware.RequireLogin)
+	// Web: Rutas protegidas
+	web := r.PathPrefix("/").Subrouter()
+	web.Use(midleware.RequireLogin)
 
-	// Rutas protegidas
-	s.HandleFunc("/", h.Handler)
-	s.HandleFunc("/addTask", h.AddTask).Methods("GET", "POST")
-	s.HandleFunc("/delete", h.DeleteTask)
-	s.HandleFunc("/update", h.UpdateTask).Methods("GET", "POST")
+	web.HandleFunc("/", h.Handler)
+	web.HandleFunc("/addTask", h.AddTask).Methods("GET", "POST")
+	web.HandleFunc("/delete", h.DeleteTask)
+	web.HandleFunc("/update", h.UpdateTask).Methods("GET", "POST")
+
+	// API: Subrouter separado
+	api := r.PathPrefix("/api").Subrouter()
+
+	apiHandler := &handlers.WebHandler{
+		Db:        db,
+		Templates: templates,
+		Store:     store,
+	}
+
+	// Rutas API (JSON)
+	api.HandleFunc("/register", apiHandler.ApiRegisterHandler).Methods("POST")
+	api.HandleFunc("/login", apiHandler.ApiLoginHandler).Methods("POST")
+	api.HandleFunc("/logout", apiHandler.ApiLogoutHandler).Methods("GET")
+	api.HandleFunc("/tasks", apiHandler.ApiListTasks).Methods("GET")
+	api.HandleFunc("/tasks", apiHandler.ApiAddTask).Methods("POST")
+	api.HandleFunc("/tasks/{id:[0-9]+}", apiHandler.ApiUpdateTask).Methods("PUT")
+	api.HandleFunc("/tasks/{id:[0-9]+}", apiHandler.ApiDeleteTask).Methods("DELETE")
 
 	log.Println("Servidor iniciado en :8080")
 	http.ListenAndServe(":8080", r)

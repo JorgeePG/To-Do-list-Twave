@@ -13,7 +13,10 @@
             <h1>{{.Texto}}</h1>
         </header>
         <main>
-            <ul>
+            {{if .Error}}
+                    <div class="error-message">{{.Error}}</div>
+            {{end}}
+            <ul>   
                 {{range .Tasks}}
                     <li>
                         <div class="task-info" data-id="{{.ID.Int64}}">

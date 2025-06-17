@@ -288,6 +288,12 @@ ul {
     color: #22223b;
 }
 
+.error-message {
+    color: red;
+    margin: 10px 0;
+    font-weight: bold;
+}
+
 @media (max-width: 600px) {
     .container {
         max-width: 98vw;

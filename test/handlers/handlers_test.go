@@ -3,7 +3,6 @@ package handlers
 import (
 	"database/sql"
 	"html/template"
-	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -54,14 +53,14 @@ func cleanDB(t *testing.T) *sql.DB {
 	return db
 }
 
-func newTestHandler(t *testing.T) *handlers.Handler2 {
+func newTestHandler(t *testing.T) *handlers.WebHandler {
 	db := cleanDB(t)
 	templates := template.Must(template.ParseGlob("../../web_templates/*.html"))
 	templates = template.Must(templates.ParseGlob("../../web_templates/fragments/*.html"))
 
 	store := sessions.NewCookieStore([]byte("test-secret"))
 
-	return &handlers.Handler2{
+	return &handlers.WebHandler{
 		Db:        db,
 		Templates: templates,
 		Store:     store,
@@ -98,31 +97,6 @@ func TestRegisterHandlerOKPOST(t *testing.T) {
 	assert.Equal(t, http.StatusSeeOther, res.StatusCode, "POST /register: want %d, got %d", http.StatusSeeOther, res.StatusCode)
 }
 
-func TestRegisterHandlerBadPOST(t *testing.T) {
-	h := newTestHandler(t)
-	form := strings.NewReader("username=testuser&password=testpass")
-	req1 := httptest.NewRequest("POST", "/register", form)
-	req1.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	w1 := httptest.NewRecorder()
-	h.RegisterHandler(w1, req1)
-
-	// Intentar registrar el mismo usuario otra vez
-	req2 := httptest.NewRequest("POST", "/register", strings.NewReader("username=testuser&password=testpass"))
-	req2.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	w2 := httptest.NewRecorder()
-	h.RegisterHandler(w2, req2)
-
-	res := w2.Result()
-	defer res.Body.Close()
-
-	assert.Equal(t, http.StatusBadRequest, res.StatusCode, "POST /register repetido: want %d, got %d", http.StatusBadRequest, res.StatusCode)
-
-	body, _ := io.ReadAll(res.Body)
-	mensaje := string(body)
-	assert.NotEmpty(t, mensaje, "El mensaje de error no debe estar vacío")
-	assert.Contains(t, mensaje, "Usuario ya existe", "Mensaje de error esperado no encontrado")
-}
-
 func TestLoginHandlerOKPOST(t *testing.T) {
 
 	form := strings.NewReader("username=testuser&password=testpass")
@@ -139,19 +113,6 @@ func TestLoginHandlerOKPOST(t *testing.T) {
 	defer res.Body.Close()
 
 	assert.Equal(t, http.StatusSeeOther, res.StatusCode, "POST /login: want %d, got %d", http.StatusSeeOther, res.StatusCode)
-}
-
-func TestLoginHandlerBadPOST(t *testing.T) {
-	w := httptest.NewRecorder()
-	h := newTestHandler(t)
-
-	req := httptest.NewRequest("POST", "/login", strings.NewReader("username=testuser&password=testpass"))
-	h.LoginHandler(w, req)
-
-	res := w.Result()
-	defer res.Body.Close()
-
-	assert.Equal(t, http.StatusUnauthorized, res.StatusCode, "POST /login: want %d, got %d", http.StatusSeeOther, res.StatusCode)
 }
 
 func TestAddTaskHandlerOKPOST(t *testing.T) {

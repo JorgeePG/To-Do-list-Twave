@@ -10,6 +10,9 @@
     {{template "nav.html" .}}
     <div class="container">
         <h1>Añadir Nueva Tarea</h1>
+        {{if .Error}}
+        <div class="error-message">{{.Error}}</div>
+        {{end}}
         <form method="POST" action="/addTask">
             <label for="title">Título:</label>
             <input type="text" id="title" name="title" required>
@@ -17,6 +20,7 @@
             <input type="checkbox" id="done" name="done">
             <button type="submit">Añadir Tarea</button>
         </form>
+        
         <a href="/">Volver a la lista de tareas</a>
     </div>
 </body>

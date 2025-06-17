@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/json"
 	"html/template"
 	"math/rand"
 	"net/http"
@@ -22,16 +23,17 @@ type Datos struct {
 type PageData struct {
 	Título string
 	Texto  string
-	Tasks  []*models.Task // Usa el struct del modelo directamente
+	Tasks  []*models.Task
+	Error  string
 }
 
-type Handler2 struct {
+type WebHandler struct {
 	Db        boil.ContextExecutor
 	Templates *template.Template
 	Store     *sessions.CookieStore
 }
 
-func (h *Handler2) Handler(w http.ResponseWriter, r *http.Request) {
+func (h *WebHandler) Handler(w http.ResponseWriter, r *http.Request) {
 	session, _ := h.Store.Get(r, "session")
 	userID, ok := session.Values["user_id"].(int)
 	if !ok {
@@ -57,7 +59,11 @@ func (h *Handler2) Handler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *Handler2) AddTask(w http.ResponseWriter, r *http.Request) {
+type ErrorData struct {
+	Error string
+}
+
+func (h *WebHandler) AddTask(w http.ResponseWriter, r *http.Request) {
 	session, _ := h.Store.Get(r, "session")
 	userID, ok := session.Values["user_id"].(int)
 	if !ok {
@@ -77,7 +83,8 @@ func (h *Handler2) AddTask(w http.ResponseWriter, r *http.Request) {
 		}
 		err := task.Insert(r.Context(), h.Db, boil.Infer())
 		if err != nil {
-			http.Error(w, "Error inserting task: "+err.Error(), http.StatusInternalServerError)
+			data := ErrorData{Error: "Error insertando tarea: " + err.Error()}
+			h.Templates.ExecuteTemplate(w, "addTask.html", data)
 			return
 		}
 
@@ -97,7 +104,7 @@ func generateUniqueID() null.Int64 {
 	return null.Int64From(uniqueID)
 }
 
-func (h *Handler2) DeleteTask(w http.ResponseWriter, r *http.Request) {
+func (h *WebHandler) DeleteTask(w http.ResponseWriter, r *http.Request) {
 	session, _ := h.Store.Get(r, "session")
 	userID, ok := session.Values["user_id"].(int)
 	if !ok {
@@ -136,7 +143,7 @@ func (h *Handler2) DeleteTask(w http.ResponseWriter, r *http.Request) {
 	http.Error(w, "Método no permitido", http.StatusMethodNotAllowed)
 }
 
-func (h *Handler2) UpdateTask(w http.ResponseWriter, r *http.Request) {
+func (h *WebHandler) UpdateTask(w http.ResponseWriter, r *http.Request) {
 	session, _ := h.Store.Get(r, "session")
 	userID, ok := session.Values["user_id"].(int)
 	if !ok {
@@ -169,14 +176,16 @@ func (h *Handler2) UpdateTask(w http.ResponseWriter, r *http.Request) {
 	task.Done = null.Bool{Bool: done == "on", Valid: true}
 	_, err = task.Update(r.Context(), h.Db, boil.Infer())
 	if err != nil {
-		http.Error(w, "Error actualizando tarea: "+err.Error(), http.StatusInternalServerError)
+		data := ErrorData{Error: "Error actualizando tarea: " + err.Error()}
+		h.Templates.ExecuteTemplate(w, "index.html", data)
 		return
+
 	}
 
 	w.WriteHeader(http.StatusOK)
 }
 
-func (h *Handler2) RegisterHandler(w http.ResponseWriter, r *http.Request) {
+func (h *WebHandler) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "GET" {
 		err := h.Templates.ExecuteTemplate(w, "register.html", nil)
 
@@ -194,7 +203,8 @@ func (h *Handler2) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 
 	result, err := h.Db.Exec("INSERT INTO users (username, password_hash) VALUES (?, ?)", username, hash)
 	if err != nil {
-		http.Error(w, "Usuario ya existe", http.StatusBadRequest)
+		data := ErrorData{Error: "Usuario ya existe"}
+		h.Templates.ExecuteTemplate(w, "register.html", data)
 		return
 	}
 
@@ -216,7 +226,7 @@ func (h *Handler2) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
-func (h *Handler2) LoginHandler(w http.ResponseWriter, r *http.Request) {
+func (h *WebHandler) LoginHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "GET" {
 		err := h.Templates.ExecuteTemplate(w, "login.html", nil)
 		if err != nil {
@@ -230,12 +240,9 @@ func (h *Handler2) LoginHandler(w http.ResponseWriter, r *http.Request) {
 	var id int
 	var hash string
 	err := h.Db.QueryRow("SELECT id, password_hash FROM users WHERE username = ?", username).Scan(&id, &hash)
-	if err != nil {
-		http.Error(w, "Usuario o contraseña incorrectos", http.StatusUnauthorized)
-		return
-	}
-	if bcrypt.CompareHashAndPassword([]byte(hash), []byte(password)) != nil {
-		http.Error(w, "Usuario o contraseña incorrectos", http.StatusUnauthorized)
+	if err != nil || bcrypt.CompareHashAndPassword([]byte(hash), []byte(password)) != nil {
+		data := ErrorData{Error: "Usuario o contraseña incorrectos"}
+		h.Templates.ExecuteTemplate(w, "login.html", data)
 		return
 	}
 	// Guardar el user_id en la cookie de sesión
@@ -246,9 +253,24 @@ func (h *Handler2) LoginHandler(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
-func (h *Handler2) LogoutHandler(w http.ResponseWriter, r *http.Request) {
+func (h *WebHandler) LogoutHandler(w http.ResponseWriter, r *http.Request) {
 	session, _ := h.Store.Get(r, "session")
 	delete(session.Values, "user_id")
 	session.Save(r, w)
 	http.Redirect(w, r, "/login", http.StatusSeeOther)
+}
+
+func writeJSON(w http.ResponseWriter, status int, payload interface{}) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+
+	// Manejar diferentes tipos de payload
+	switch v := payload.(type) {
+	case string:
+		// Si es un string, asumimos que ya es JSON válido
+		w.Write([]byte(v))
+	default:
+		// Para otros tipos, usar el encoder directamente
+		json.NewEncoder(w).Encode(payload)
+	}
 }
