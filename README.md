@@ -18,7 +18,7 @@ Aplicación sencilla con Go, REST API y web UI.
 ```bash
 make run
 ```
-Para ejecutar con tests con:
+Para ejecutar con tests:
 
 ```bash
 make full
