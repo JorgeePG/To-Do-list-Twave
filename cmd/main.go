@@ -93,14 +93,26 @@ func StartServer() {
 }
 
 func main() {
+	var verbose bool
+
 	app := &cli.App{
 		Name:  "todo",
 		Usage: "Gestor de tareas desde CLI y Web",
+		Flags: []cli.Flag{
+			&cli.BoolFlag{
+				Name:        "verbose",
+				Usage:       "Muestra logs detallados",
+				Destination: &verbose,
+			},
+		},
 		Commands: []*cli.Command{
 			{
 				Name:  "serve",
 				Usage: "Inicia el servidor web",
 				Action: func(c *cli.Context) error {
+					if verbose {
+						log.Println("[VERBOSE] Iniciando servidor web...")
+					}
 					StartServer()
 					return nil
 				},
@@ -117,6 +129,9 @@ func main() {
 					},
 				},
 				Action: func(c *cli.Context) error {
+					if verbose {
+						log.Println("[VERBOSE] Conectando a la base de datos para listar tareas...")
+					}
 					db, err := sql.Open("sqlite", "../todo.db")
 					if err != nil {
 						return err
@@ -154,6 +169,9 @@ func main() {
 							}
 							fmt.Printf("[%d] %s - %s\n", t.ID, t.Title, status)
 						}
+					}
+					if verbose {
+						log.Printf("[VERBOSE] %d tareas listadas.\n", len(tasks))
 					}
 					return nil
 				},
