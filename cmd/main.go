@@ -153,6 +153,46 @@ func main() {
 					return nil
 				},
 			},
+			{
+				Name: "user",
+				Subcommands: []*cli.Command{
+					{
+						Name: "add",
+						Flags: []cli.Flag{
+							&cli.StringFlag{
+								Name:    "nombre",
+								Aliases: []string{"t"},
+								Usage:   "Nombre del usuario",
+							},
+							&cli.StringFlag{
+								Name:  "atareado",
+								Usage: "Tareas pendientes (true/false)",
+							},
+						},
+						Action: func(c *cli.Context) error {
+							nombre := c.String("nombre")
+							atareado := c.String("atareado")
+							fmt.Println("Nombre:", nombre, "Tareas pendientes:", atareado)
+							return nil
+						},
+					},
+					{
+						Name: "delete",
+						Flags: []cli.Flag{
+							&cli.StringFlag{
+								Name:    "nombre",
+								Aliases: []string{"t"},
+								Usage:   "Nombre del usuario",
+							},
+						},
+						Action: func(c *cli.Context) error {
+							nombre := c.String("nombre")
+							fmt.Println("El usuario \"", nombre, "\" ha sido eliminado")
+							return nil
+						},
+					},
+				},
+			},
 		},
 	}
 
