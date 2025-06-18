@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{.Título}}</title>
     <link rel="stylesheet" href="/static/style.css">
 </head>
+
 <body>
     {{template "nav.html" .}}
     <div class="container">
@@ -14,27 +16,33 @@
         </header>
         <main>
             {{if .Error}}
-                    <div class="error-message">{{.Error}}</div>
+            <div class="error-message">{{.Error}}</div>
             {{end}}
-            <ul>   
+            <ul>
                 {{range .Tasks}}
-                    <li>
-                        <div class="task-info" data-id="{{.ID.Int64}}">
-                            <div class="task-main">
-                                <input type="checkbox" class="edit-done" {{if .Done.Bool}}checked{{end}} disabled>
-                                <span class="task-title {{if .Done.Bool}}completed{{end}}">{{.Title}}</span>
-                                <input type="text" class="edit-title" value="{{.Title}}">
-                            </div>
-                            <div class="task-actions">
-                                <a href="#" class="edit-btn">Editar</a>
-                                <button class="save-btn">Guardar</button>
-                                <button class="cancel-btn">Cancelar</button>
-                                <a href="/delete?id={{.ID.Int64}}">Eliminar</a>
-                            </div>
+                <li>
+                    <div class="task-info" data-id="{{.ID.Int64}}">
+                        <div class="task-main">
+                            <input type="checkbox" class="edit-done" {{if .Done.Bool}}checked{{end}} disabled>
+                            <span class="task-title {{if .Done.Bool}}completed{{end}}">{{.Title}}</span>
+                            <input type="text" class="edit-title" value="{{.Title}}">
                         </div>
-                    </li>
+                        <div class="task-actions">
+                            <a href="#" class="edit-btn">Editar</a>
+                            <button class="save-btn">Guardar</button>
+                            <button class=" cancel-btn">Cancelar</button>
+                            <a href=" /delete?id={{.ID.Int64}}">Eliminar</a>
+                        </div>
+                    </div>
+                </li>
                 {{else}}
-                    <li>No hay tareas disponibles.</li>
+                <li>
+                    <div class="task-info">
+                        <div class="task-main">
+                            <span class="task-title">No hay tareas disponibles.</span>
+                        </div>
+                    </div>
+                </li>
                 {{end}}
             </ul>
             <a href="/addTask" class="add-task-btn">Agregar nueva tarea</a>
@@ -42,4 +50,5 @@
     </div>
     <script src="/static/main.js"></script>
 </body>
+
 </html>
