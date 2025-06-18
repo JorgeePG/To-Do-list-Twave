@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"fmt"
 	"html/template"
 	"log"
 	"net/http"
@@ -104,8 +105,9 @@ func main() {
 				},
 			},
 			{
-				Name:  "list",
-				Usage: "Lista todas las tareas",
+				Name:      "list",
+				Usage:     "Lista todas las tareas",
+				UsageText: "go run . list",
 				Action: func(c *cli.Context) error {
 					db, err := sql.Open("sqlite", "../todo.db")
 					if err != nil {
@@ -128,6 +130,26 @@ func main() {
 						}
 						log.Printf("[%d] %s - %s\n", id, title, status)
 					}
+					return nil
+				},
+			},
+			{
+				Name: "add",
+				Flags: []cli.Flag{
+					&cli.StringFlag{
+						Name:    "title",
+						Aliases: []string{"t"},
+						Usage:   "Título de la tarea",
+					},
+					&cli.StringFlag{
+						Name:  "finish",
+						Usage: "Tarea acabada (true/false)",
+					},
+				},
+				Action: func(c *cli.Context) error {
+					title := c.String("title")
+					finish := c.String("finish")
+					fmt.Println("Título:", title, "Tarea acabada:", finish)
 					return nil
 				},
 			},
