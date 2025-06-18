@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"html/template"
 	"log"
@@ -105,9 +106,16 @@ func main() {
 				},
 			},
 			{
-				Name:      "list",
-				Usage:     "Lista todas las tareas",
-				UsageText: "go run . list",
+				Name:  "list",
+				Usage: "Lista todas las tareas",
+				Flags: []cli.Flag{
+					&cli.StringFlag{
+						Name:    "output",
+						Aliases: []string{"o"},
+						Usage:   "Formato de salida: text|json",
+						Value:   "text",
+					},
+				},
 				Action: func(c *cli.Context) error {
 					db, err := sql.Open("sqlite", "../todo.db")
 					if err != nil {
@@ -119,16 +127,33 @@ func main() {
 						return err
 					}
 					defer rows.Close()
+
+					type Task struct {
+						ID    int    `json:"id"`
+						Title string `json:"title"`
+						Done  bool   `json:"done"`
+					}
+					var tasks []Task
+
 					for rows.Next() {
-						var id int
-						var title string
-						var done bool
-						rows.Scan(&id, &title, &done)
-						status := "Pendiente"
-						if done {
-							status = "Hecha"
+						var t Task
+						rows.Scan(&t.ID, &t.Title, &t.Done)
+						tasks = append(tasks, t)
+					}
+
+					output := c.String("output")
+					switch output {
+					case "json":
+						importjson, _ := json.MarshalIndent(tasks, "", "  ")
+						fmt.Println(string(importjson))
+					default:
+						for _, t := range tasks {
+							status := "Pendiente"
+							if t.Done {
+								status = "Hecha"
+							}
+							fmt.Printf("[%d] %s - %s\n", t.ID, t.Title, status)
 						}
-						log.Printf("[%d] %s - %s\n", id, title, status)
 					}
 					return nil
 				},
