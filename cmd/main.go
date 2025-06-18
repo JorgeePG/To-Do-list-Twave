@@ -103,6 +103,34 @@ func main() {
 					return nil
 				},
 			},
+			{
+				Name:  "list",
+				Usage: "Lista todas las tareas",
+				Action: func(c *cli.Context) error {
+					db, err := sql.Open("sqlite", "../todo.db")
+					if err != nil {
+						return err
+					}
+					defer db.Close()
+					rows, err := db.Query("SELECT id, title, done FROM tasks")
+					if err != nil {
+						return err
+					}
+					defer rows.Close()
+					for rows.Next() {
+						var id int
+						var title string
+						var done bool
+						rows.Scan(&id, &title, &done)
+						status := "Pendiente"
+						if done {
+							status = "Hecha"
+						}
+						log.Printf("[%d] %s - %s\n", id, title, status)
+					}
+					return nil
+				},
+			},
 		},
 	}
 

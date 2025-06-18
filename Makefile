@@ -2,7 +2,11 @@
 
 run:
 	@echo "🔄 Ejecutando la aplicación..."
-	cd cmd/ && go run .
+	cd cmd/ && go run . serve
+
+list:
+	@echo "🔄 Ejecutando la aplicación..."
+	cd cmd/ && go run . list
 
 build:
 	@echo "🏗️ Compilando la aplicación..."
