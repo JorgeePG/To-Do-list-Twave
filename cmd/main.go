@@ -127,17 +127,72 @@ func main() {
 						Usage:   "Formato de salida: text|json",
 						Value:   "text",
 					},
+					&cli.BoolFlag{
+						Name:  "done-only",
+						Usage: "Mostrar solo tareas completadas",
+					},
+					&cli.BoolFlag{
+						Name:  "pending-only",
+						Usage: "Mostrar solo tareas pendientes",
+					},
+					&cli.StringFlag{
+						Name:  "sort",
+						Usage: "Ordenar por: id|title|status",
+						Value: "id",
+					},
 				},
 				Action: func(c *cli.Context) error {
 					if verbose {
 						log.Println("[VERBOSE] Conectando a la base de datos para listar tareas...")
 					}
+
+					// Construir la consulta SQL con filtros
+					query := "SELECT id, title, done FROM tasks"
+
+					// Aplicar filtros
+					var whereConditions []string
+					if c.Bool("done-only") {
+						whereConditions = append(whereConditions, "done = 1")
+					}
+					if c.Bool("pending-only") {
+						whereConditions = append(whereConditions, "done = 0")
+					}
+
+					// Si ambos están activados, esto sería un error lógico
+					if c.Bool("done-only") && c.Bool("pending-only") {
+						return fmt.Errorf("error: no puedes usar --done-only y --pending-only al mismo tiempo")
+					}
+
+					// Agregar las condiciones WHERE si existen
+					if len(whereConditions) > 0 {
+						query += " WHERE " + whereConditions[0]
+					}
+
+					// Aplicar orden
+					sortColumn := c.String("sort")
+					switch sortColumn {
+					case "id":
+						query += " ORDER BY id ASC"
+					case "title":
+						query += " ORDER BY title ASC"
+					case "status":
+						query += " ORDER BY done ASC"
+					default:
+						// Valor predeterminado en caso de valor inválido
+						query += " ORDER BY id ASC"
+					}
+
+					if verbose {
+						log.Printf("[VERBOSE] Ejecutando consulta: %s\n", query)
+					}
+
 					db, err := sql.Open("sqlite", "../todo.db")
 					if err != nil {
 						return err
 					}
 					defer db.Close()
-					rows, err := db.Query("SELECT id, title, done FROM tasks")
+
+					rows, err := db.Query(query)
 					if err != nil {
 						return err
 					}
